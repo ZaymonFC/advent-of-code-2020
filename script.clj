@@ -181,3 +181,12 @@
 
 (apply min ids)
 (set/difference (set (range 100 862)) (set ids))
+
+;; Day 6
+(->> (common/lines "6.txt")
+     (partition-by empty?)
+     (filter (complement (partial = [""])))
+     (map (partial map set))
+     (map (partial apply set/intersection))
+     (map count)
+     (reduce +))
