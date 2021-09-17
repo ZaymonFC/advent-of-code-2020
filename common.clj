@@ -24,7 +24,6 @@
   (if (and ((complement empty?) s) (re-find #"^-?\d+\.?\d*$" s))
     (read-string s)))
 
-
 (defn lines [file-name]
   (->> (slurp (str "inputs/" file-name))
        (split-lines)))

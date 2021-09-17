@@ -4,10 +4,10 @@
  '[camel-snake-kebab.core :as csk]
  '[java-time :as time]
  '[clj-http.client :as client]
- '[clojure.string :refer [split-lines split]]
+ '[clojure.string :refer [split-lines split] :as string]
+ '[clojure.set :as set]
  '[common :as common]
  '[malli.core :as m])
-
 
 ;; --- Day 1
 (defn sum-is-2020 [xs] (->> xs (apply +) (= 2020)))
@@ -148,3 +148,36 @@
      (map make-passport-record)
      (filter validate-passport-record)
      count)
+
+;; -- Day 5
+(defn halve [xs] (split-at (quot (count xs) 2) xs))
+(defn upper-half [xs] (second (halve xs)))
+(defn lower-half [xs] (first (halve xs)))
+
+(defn space-divider [[rows cols] instruction]
+  (case instruction
+    \F [(lower-half rows) cols]
+    \B [(upper-half rows) cols]
+    \R [rows (upper-half cols)]
+    \L [rows (lower-half cols)]))
+
+(defn calculate-row-col [rows columns instructions]
+  (let [rows (range rows)
+        columns (range columns)]
+    (flatten (reduce space-divider [rows columns] instructions))))
+
+(defn line->seat-details [line & {:keys [rows columns]
+                                  :or {rows 128 columns 8}}]
+  (let [[row column] (->> line
+                          (calculate-row-col rows columns))]
+    {:row row :column column :id (+ (* columns row) column)}))
+
+(line->seat-details "BFFFBBFRRR")
+
+(def ids (->> (common/lines "5.txt")
+              (map line->seat-details)
+              (map :id)
+              sort))
+
+(apply min ids)
+(set/difference (set (range 100 862)) (set ids))
