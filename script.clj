@@ -7,7 +7,8 @@
  '[clojure.string :refer [split-lines split] :as string]
  '[clojure.set :as set]
  '[common :as common]
- '[malli.core :as m])
+ '[malli.core :as m]
+ '[hashp.core :refer :all])
 
 ;; --- Day 1
 (defn sum-is-2020 [xs] (->> xs (apply +) (= 2020)))
@@ -190,3 +191,86 @@
      (map (partial apply set/intersection))
      (map count)
      (reduce +))
+
+;; Day 7 -- Part 1
+(defn words [line] (string/split line #" "))
+
+(defn make-rule-1 [source [amount & colour]]
+  {colour [source (Integer/parseInt amount)]})
+
+(defn make-rules-1 [words]
+  (let [source (take 2 words)
+        targets (partition 3 (drop 2 words))
+        make-rule (partial make-rule-1 source)]
+    (map make-rule targets)))
+
+(def data-1
+  (->> (common/lines "7.txt")
+       (map (partial filter (fn [c] (and (not= \, c) (not= \. c)))))
+       (map (partial apply str))
+       (map words)
+       (map (partial filter (partial not= "contain")))
+       (map (partial filter (partial not= "bags")))
+       (map (partial filter (partial not= "bag")))
+       (mapcat make-rules-1)
+       (apply merge-with concat)
+       (map (fn [[k v]] [k (into {} (map (partial into []) (into [] (partition 2 v))))]))
+       (into {})))
+
+(defn get-neighbours [map node]
+  (->> (map node)
+       (keys)
+       (into [])))
+
+(defn explore-1 [data source]
+  (loop [explored #{source}
+         frontier (get-neighbours data source)]
+
+    (if-let [next (peek frontier)]
+      (if (explored next)
+        ;; We've seen `next` before. Pop next -> frontier and recurse
+        (recur explored (pop frontier))
+
+        ;; Push next -> seen, 
+        ;; Get next -> neighbours, 
+        ;; Pop next from frontier, recurse
+        (let [neighbours (get-neighbours data next)]
+          (recur (conj explored next) (apply conj neighbours (pop frontier)))))
+
+      ;; No nodes left to explore, return explored nodes
+      explored)))
+
+(def shiny-gold ["shiny" "gold"])
+(dec (count (explore-1 data-1 shiny-gold)))
+
+;; --- Day 7 Part 2
+(defn make-rule [[amount & colour]]
+  [colour (Integer/parseInt amount)])
+
+(defn make-rules [words]
+  (let [source (take 2 words)
+        targets (partition 3 (drop 2 words))]
+    {source (into [] (map make-rule targets))}))
+
+(def data
+  (->> (common/lines "7.txt")
+       (map (partial filter (fn [c] (and (not= \, c) (not= \. c)))))
+       (map (partial apply str))
+       (map words)
+       (map (partial filter (partial not= "contain")))
+       (map (partial filter (partial not= "bags")))
+       (map (partial filter (partial not= "bag")))
+       (mapcat make-rules)
+       (into {})))
+
+(defn count-bags [data bag]
+  (if-let [children (data bag)]
+    (->> children
+         (map (fn [[bag value]] (+ value (* value (count-bags data bag)))))
+         (apply +))
+    0))
+
+(data ["shiny" "gold"])
+(data ["vibrant" "bronze"])
+
+(count-bags data shiny-gold)
