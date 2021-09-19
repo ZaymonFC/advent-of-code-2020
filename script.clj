@@ -274,3 +274,35 @@
 (data ["vibrant" "bronze"])
 
 (count-bags data shiny-gold)
+
+;; --- Day 8
+(def data
+  (->> (common/lines "8.txt")
+       (map words)
+       (map (fn [[op val]] [op (Integer/parseInt val)]))
+       (into [])))
+
+(defn process [data]
+  (loop [position 0 acc 0 executed? #{}]
+    (cond
+      (executed? position) executed?
+      (= position (count data)) [:end acc]
+      :else
+      (let [[op operand] (nth data position)
+            executed? (conj executed? position)]
+        (case op
+          "nop" (recur (inc position) acc executed?)
+          "acc" (recur (inc position) (+ acc operand) executed?)
+          "jmp" (recur (+ position operand) acc executed?))))))
+
+(defn flip-operator [[op operand]]
+  (case op
+    "nop" ["jmp" operand]
+    "jmp" ["nop" operand]
+    "acc" [op operand]))
+
+(->> data
+     (map-indexed (fn [idx _row] (update data idx flip-operator)))
+     (map process)
+     (drop-while (complement vector?))
+     first)
