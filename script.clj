@@ -306,3 +306,68 @@
      (map process)
      (drop-while (complement vector?))
      first)
+
+;; Day 9
+
+;; Write a function that returns a sequence of a rolling buffer of:
+;; - buffer-size values
+;; - the next value
+(defn buffer-next
+  ([source buffer-size] (buffer-next source buffer-size 0))
+  ([source buffer-size position]
+   (if (>= (+ position buffer-size) (count source))
+     nil
+     (let [buffer (->> source (drop position) (take buffer-size))
+           next (->> source (drop (+ position buffer-size)) first)]
+       (lazy-seq
+        (cons
+         [buffer next]
+         (buffer-next source buffer-size (inc position))))))))
+
+(defn is-sum-of [[xs n]]
+  (let [combinations (->> (for [x xs y xs] (if (= x y) nil [x y]))
+                          (filter (complement nil?))
+                          (filter (fn [[x y]] (not (= x y)))))]
+    (->> combinations
+         (filter (fn [[x y]] (= (+ x y) n)))
+         empty?
+         not)))
+
+(def data
+  (->> (common/lines "9.txt")
+       (map common/parse-number)))
+
+(def result
+  (->> (buffer-next data 25)
+       (drop-while is-sum-of)
+       first
+       second))
+
+;; Part 2
+
+;; An efficient algorithm for determining sub-array sum
+;; If all the numbers are positive, 
+;; - if a sub-array sum, exceeds target sum -> abandon
+
+;; Imagine a sliding window
+; 1 2 >[3 4 5]-> 6 7
+;; If the sum of the sliding window exeeds target, shrink left
+;; 1 2 3 >[4 5]-> 6 7
+;; If the sum of the sliding window is less than target, expand right
+;; 1 2 3 >[4 5 6]-> 7
+
+(defn sub-array-sum [source target-sum]
+  (let [n (count source)]
+    (loop [start 0 finish 2]
+      (if (= finish n)
+        nil
+        (let [arr (subvec source start finish)
+              sum (apply + arr)]
+          (cond
+            (< sum target-sum) (recur start (inc finish))
+            (< target-sum sum) (recur (inc start) finish)
+            :else arr))))))
+
+(def min-max (juxt (partial apply min) (partial apply max)))
+
+(apply + (min-max (sub-array-sum (into [] data) result)))
